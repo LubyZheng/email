@@ -3,9 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/LubyZheng/Email/api"
-	"github.com/LubyZheng/Email/gomail"
-	"github.com/LubyZheng/Email/template"
+	"github.com/LubyZheng/Email"
 	env "github.com/joho/godotenv"
 	cron "github.com/robfig/cron/v3"
 	"log"
@@ -92,7 +90,7 @@ func batchSendMail() {
 	if isDev() {
 		weather := api.GetWeather(users[0].Local)
 		parts["weather"] = weather
-		html := generateHTML(HTML, parts)
+		html := generateHTML(template.HTML, parts)
 		fmt.Println(html)
 		return
 	}
@@ -106,7 +104,7 @@ func batchSendMail() {
 			weather := api.GetWeather(user.Local)
 			lock.Lock()
 			parts["weather"] = weather
-			html := generateHTML(HTML, parts)
+			html := generateHTML(template.HTML, parts)
 			lock.Unlock()
 			sendMail(html, user.Email)
 		}(user)
