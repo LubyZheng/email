@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/barryyan/daily-warm/api"
-	"github.com/barryyan/daily-warm/gomail"
+	"github.com/LubyZheng/Email/api"
+	"github.com/LubyZheng/Email/gomail"
+	"github.com/LubyZheng/Email/template"
 	env "github.com/joho/godotenv"
 	cron "github.com/robfig/cron/v3"
 	"log"
