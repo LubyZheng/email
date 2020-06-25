@@ -1,9 +1,11 @@
 package main
 
 import (
+	"Email/template"
 	"encoding/json"
 	"fmt"
-	"github.com/LubyZheng/Email"
+	"github.com/barryyan/daily-warm/api"
+	"github.com/barryyan/daily-warm/gomail"
 	env "github.com/joho/godotenv"
 	cron "github.com/robfig/cron/v3"
 	"log"
