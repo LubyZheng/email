@@ -1,0 +1,11 @@
+*.env*
+!.env
+
+test.html
+
+daily.sh
+msg.sh
+me.sh
+dwm.sh
+
+*.out
