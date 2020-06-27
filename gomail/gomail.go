@@ -89,7 +89,6 @@ func (gm *GoMail) String() string {
 	fmt.Fprintf(&buf, "Content-Type: text/HTML; charset=UTF-8%s", crlf)
 	fmt.Fprintf(&buf, "%s%s%s%s", crlf, gm.Content, crlf, crlf)
 	fmt.Fprintf(&buf, "%s%s", "--"+boundary+"--", crlf)
-	fmt.Println(buf.String())
 	return buf.String()
 }
 

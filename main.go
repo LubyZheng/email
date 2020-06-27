@@ -67,7 +67,7 @@ func getParts() map[string]interface{} {
 	}
 
 	wg := sync.WaitGroup{}
-	parts := map[string]interface{}{} //?
+	parts := make(map[string]interface{})
 	for name, getPart := range wrapMap {
 		wg.Add(1)
 		go func(key string, fn func() interface{}) {
@@ -98,16 +98,16 @@ func batchSendMail() {
 	}
 
 	wg := sync.WaitGroup{}
-	lock := sync.Mutex{}
+	//lock := sync.Mutex{}
 	for _, user := range users {
 		wg.Add(1)
 		go func(user User) {
 			defer wg.Done()
 			weather := api.GetWeather(user.Local)
-			lock.Lock()
+			//lock.Lock()
 			parts["weather"] = weather
 			html := generateHTML(template.HTML, parts)
-			lock.Unlock()
+			//lock.Unlock()
 			sendMail(html, user.Email)
 		}(user)
 	}
@@ -128,7 +128,7 @@ func generateHTML(html string, datas map[string]interface{}) string {
 	for key, data := range datas {
 		rDataKey := reflect.TypeOf(data)
 		rDataVal := reflect.ValueOf(data)
-		fieldNum := rDataKey.NumField()
+		fieldNum := rDataKey.NumField()    //返回该rDataKey中value结构体内的值的个数
 		for i := 0; i < fieldNum; i++ {
 			fName := rDataKey.Field(i).Name
 			rValue := rDataVal.Field(i)
