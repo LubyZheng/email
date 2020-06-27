@@ -13,7 +13,7 @@ MAIL_PORT = 25
 MAIL_CRON = "0/1 * * * *"
 MAIL_SUBJECT = 每日一暖, 温情一生
 MAIL_FROM = user<user@qq.com>
-MAIL_TO = [{"email": "user<user@qq.com>", "local": "shaanxi/xian"}]
+MAIL_TO = [{"email": "user<user@qq.com>", "local": "guangdong/shenzhen"}]
 
 # 2.Build
 go mod download
