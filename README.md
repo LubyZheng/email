@@ -23,10 +23,6 @@ go build -o dwm.out *.go
 ./dwm.out
 ```
 
-## Screenshot
-
-<img width="400" src="https://github.com/BarryYan/daily-warm/blob/master/screenshot.jpg?raw=true">
-
 ## Package
 [github.com/barryyan/daily-warm/gomail](https://godoc.org/github.com/BarryYan/daily-warm/gomail)
 
