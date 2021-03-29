@@ -1,23 +1,20 @@
 package main
 
 import (
-	"Email/template"
+	"Email/gomail"
 	"encoding/json"
 	"fmt"
-	"github.com/barryyan/daily-warm/api"
-	"github.com/barryyan/daily-warm/gomail"
 	env "github.com/joho/godotenv"
-	cron "github.com/robfig/cron/v3"
+	"github.com/robfig/cron/v3"
+	"io/ioutil"
 	"log"
 	"os"
-	"reflect"
-	"strings"
 	"sync"
 	"time"
 )
 
-//User for receive email
-type User struct {
+//Receiver for receive email
+type Receiver struct {
 	Email string `json:"email"`
 	Local string `json:"local"`
 }
@@ -56,112 +53,75 @@ func loadConfig() {
 	}
 }
 
-// TODO: refactor
-func getParts() map[string]interface{} {
-	wrapMap := map[string]func() interface{}{
-		"one":       func() interface{} { return api.GetONE() },
-		"english":   func() interface{} { return api.GetEnglish() },
-		"poem":      func() interface{} { return api.GetPoem() },
-		"wallpaper": func() interface{} { return api.GetWallpaper() },
-		"trivia":    func() interface{} { return api.GetTrivia() },
-	}
-
-	wg := sync.WaitGroup{}
-	parts := make(map[string]interface{})
-	for name, getPart := range wrapMap {
-		wg.Add(1)
-		go func(key string, fn func() interface{}) {
-			defer wg.Done()
-			parts[key] = fn()
-		}(name, getPart)
-	}
-	wg.Wait()
-	return parts
-}
-
 func batchSendMail() {
-	loadConfig()
-
-	users := getUsers("MAIL_TO")
-	if len(users) == 0 {
+	receivers := getReceivers("MAIL_TO")
+	if len(receivers) == 0 {
 		return
 	}
-
-	parts := getParts()
-
-	if isDev() {
-		weather := api.GetWeather(users[0].Local)
-		parts["weather"] = weather
-		html := generateHTML(template.HTML, parts)
-		fmt.Println(html)
-		return
-	}
+	Ccs := getCcs("MAIL_CC")
 
 	wg := sync.WaitGroup{}
-	//lock := sync.Mutex{}
-	for _, user := range users {
+	for _, receiver := range receivers {
 		wg.Add(1)
-		go func(user User) {
+		go func(receiver Receiver) {
 			defer wg.Done()
-			weather := api.GetWeather(user.Local)
-			//lock.Lock()
-			parts["weather"] = weather
-			html := generateHTML(template.HTML, parts)
-			//lock.Unlock()
-			sendMail(html, user.Email)
-		}(user)
+			sendMail(receiver.Email, Ccs)
+		}(receiver)
 	}
 	wg.Wait()
 }
 
-func getUsers(envUser string) []User {
-	var users []User
-	userJSON := os.Getenv(envUser)
-	err := json.Unmarshal([]byte(userJSON), &users)
+func getReceivers(encReceiver string) []Receiver {
+	var receivers []Receiver
+	userJSON := os.Getenv(encReceiver)
+	err := json.Unmarshal([]byte(userJSON), &receivers)
 	if err != nil {
 		log.Fatalf("Parse users from %s error: %s", userJSON, err)
 	}
-	return users
+	return receivers
 }
 
-func generateHTML(html string, datas map[string]interface{}) string {
-	for key, data := range datas {
-		rDataKey := reflect.TypeOf(data)
-		rDataVal := reflect.ValueOf(data)
-		fieldNum := rDataKey.NumField()    //返回该rDataKey中value结构体内的值的个数
-		for i := 0; i < fieldNum; i++ {
-			fName := rDataKey.Field(i).Name
-			rValue := rDataVal.Field(i)
-
-			var fValue string
-			switch rValue.Interface().(type) {
-			case string:
-				fValue = rValue.String()
-			case []string:
-				fValue = strings.Join(rValue.Interface().([]string), "<br>")
-			}
-
-			mark := fmt.Sprintf("{{%s.%s}}", key, fName)
-			html = strings.ReplaceAll(html, mark, fValue)
-		}
+func getCcs(envCc string) []Receiver {
+	var Ccs []Receiver
+	userJSON := os.Getenv(envCc)
+	err := json.Unmarshal([]byte(userJSON), &Ccs)
+	if err != nil {
+		log.Fatalf("Parse users from %s error: %s", userJSON, err)
 	}
-	return html
+	return Ccs
 }
 
-func sendMail(content string, to string) {
+func sendMail(to string, Ccs []Receiver) {
+	gomail.Config.User = os.Getenv("MAIL_USER")
 	gomail.Config.Username = os.Getenv("MAIL_USERNAME")
 	gomail.Config.Password = os.Getenv("MAIL_PASSWORD")
 	gomail.Config.Host = os.Getenv("MAIL_HOST")
 	gomail.Config.Port = os.Getenv("MAIL_PORT")
 	gomail.Config.From = os.Getenv("MAIL_FROM")
 
-	email := gomail.GoMail{
-		To:      []string{to},
-		Subject: os.Getenv("MAIL_SUBJECT"),
-		Content: content,
+	today := time.Now().Format("2006.1.2")
+	b, err := ioutil.ReadFile(today)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	duration := time.Now().AddDate(0, 0, 6).Format("2006.1.2")
+	week := today + "-" + duration
+
+	var ccs []string
+	for _, cc := range Ccs {
+		ccs = append(ccs, cc.Email)
 	}
 
-	err := email.Send()
+	subject := fmt.Sprintf("%s %s%s", gomail.Config.User, week, os.Getenv("MAIL_SUBJECT"))
+
+	email := gomail.GoMail{
+		To:      []string{to},
+		Subject: subject,
+		Cc:      ccs,
+		Content: string(b),
+	}
+
+	err = email.Send()
 	if err != nil {
 		log.Printf("Send email fail, error: %s", err)
 	} else {

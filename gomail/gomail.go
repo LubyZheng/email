@@ -2,9 +2,7 @@ package gomail
 
 import (
 	"bytes"
-	"crypto/md5"
 	"fmt"
-	"io"
 	"log"
 	"net/mail"
 	"net/smtp"
@@ -13,6 +11,7 @@ import (
 
 // Configuration for mail
 type Configuration struct {
+	User     string
 	Host     string
 	Port     string
 	Username string
@@ -67,11 +66,6 @@ func (gm *GoMail) String() string {
 		}
 		buf.WriteString(crlf)
 	}
-	getBoundary := func() string {
-		h := md5.New()
-		io.WriteString(h, fmt.Sprintf("%d", time.Now().Nanosecond()))
-		return fmt.Sprintf("%x", h.Sum(nil))
-	}
 
 	from := parseMailAddr(gm.From)
 	if from.Address == "" {
@@ -81,23 +75,25 @@ func (gm *GoMail) String() string {
 	write("To: ", gm.To)
 	write("Cc: ", gm.Cc)
 	write("Bcc: ", gm.Bcc)
-	boundary := getBoundary()
 	fmt.Fprintf(&buf, "Date: %s%s", time.Now().UTC().Format(time.RFC822), crlf)
 	fmt.Fprintf(&buf, "Subject: %s%s", gm.Subject, crlf)
-	fmt.Fprintf(&buf, "Content-Type: multipart/alternative; boundary=%s%s%s", boundary, crlf, crlf)
-	fmt.Fprintf(&buf, "%s%s", "--"+boundary, crlf)
-	fmt.Fprintf(&buf, "Content-Type: text/HTML; charset=UTF-8%s", crlf)
 	fmt.Fprintf(&buf, "%s%s%s%s", crlf, gm.Content, crlf, crlf)
-	fmt.Fprintf(&buf, "%s%s", "--"+boundary+"--", crlf)
 	return buf.String()
 }
 
 // Send email
 func (gm *GoMail) Send() error {
-	to := make([]string, len(gm.To))
+	//收件人
+	var to []string
 	for i := range gm.To {
-		to[i] = parseMailAddr(gm.To[i]).Address
+		to = append(to, parseMailAddr(gm.To[i]).Address)
 	}
+	//抄送
+	for i := range gm.Cc {
+		to = append(to, parseMailAddr(gm.Cc[i]).Address)
+	}
+
+	fmt.Println(to)
 
 	if gm.From == "" {
 		gm.From = Config.From
